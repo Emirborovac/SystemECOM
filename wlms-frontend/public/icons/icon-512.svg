@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#0b1020"/>
+  <rect x="40" y="40" width="432" height="432" fill="#0b1020" stroke="#ffd400" stroke-width="20"/>
+  <text x="256" y="292" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace" font-size="140" fill="#ffffff">SE</text>
+</svg>
+
+

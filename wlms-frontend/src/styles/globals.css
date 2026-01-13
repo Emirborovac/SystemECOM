@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* SystemECOM brutalist theme tokens */
+:root {
+  /* Palette: black / white / dark blue / yellow (accent) */
+  --color-surface: 255 255 255; /* white */
+  --color-ink: 10 10 10; /* near-black */
+  --color-muted: 76 86 97; /* slate */
+  --color-primary: 10 34 64; /* dark blue */
+  --color-accent: 250 204 21; /* yellow */
+  --color-border: 15 23 42; /* blue-black */
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: rgb(var(--color-surface));
+  color: rgb(var(--color-ink));
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    Segoe UI,
+    Roboto,
+    Helvetica,
+    Arial,
+    "Apple Color Emoji",
+    "Segoe UI Emoji";
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+/* Brutalist defaults: sharp edges, visible borders */
+.card {
+  @apply bg-surface text-ink shadow-brutal border border-border rounded-none;
+}
+
+.btn {
+  @apply inline-flex items-center justify-center gap-2 border border-border rounded-none px-3 py-2 text-sm font-semibold shadow-brutal;
+}
+
+.btn-primary {
+  @apply bg-primary text-white;
+}
+
+.btn-ghost {
+  @apply bg-surface text-ink;
+}
+
+.input {
+  @apply w-full border border-border rounded-none px-3 py-2 text-sm shadow-brutal bg-surface text-ink;
+}
+
+table th {
+  @apply font-semibold;
+}
+
+
+
+

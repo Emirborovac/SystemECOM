@@ -1,0 +1,26 @@
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic==2.10.4
+pydantic-settings==2.7.1
+python-dotenv==1.0.1
+
+# DB + migrations
+SQLAlchemy==2.0.36
+alembic==1.14.0
+psycopg==3.2.3
+
+# Auth / security
+pyjwt==2.10.1
+passlib[bcrypt]==1.7.4
+
+# Billing/docs
+reportlab==4.2.5
+
+# Object storage (S3/MinIO)
+boto3==1.35.82
+
+# Rate limiting (uses Redis if available, otherwise in-memory fallback)
+redis==5.0.1
+
+
+

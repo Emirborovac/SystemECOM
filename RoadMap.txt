@@ -1,0 +1,1428 @@
+# **WLMS — Warehouse & Logistics Management System**
+
+## **Complete Product + Technical Blueprint (A to Z)**
+
+**Audience:** Engineering team (frontend, backend, mobile/PWA, DevOps, QA)
+**Goal of this document:** Enable the team to build the full system end-to-end with minimal ambiguity.
+
+---
+
+## 1) Context and problem we are solving
+
+A warehouse/logistics provider handles inventory for multiple client companies. Day-to-day operations include receiving shipments, storing items (often on pallets in locations), picking and packing orders, dispatching shipments, processing returns, resolving stock discrepancies, and charging clients for storage and handling services.
+
+In many warehouses, these workflows are executed with paper forms, spreadsheets, manual counting, and “tribal knowledge” (e.g., “this product is usually in that corner”). This causes predictable issues:
+
+* Inventory mismatches (stock on paper ≠ stock in warehouse)
+* Slow operations (counting, re-checking, correcting)
+* No real-time visibility for management or clients
+* Higher picking/dispatch errors
+* Difficult investigations (no audit trail)
+* Billing disputes (how did you calculate this month’s charges?)
+
+---
+
+## 2) Purpose and goals of WLMS
+
+WLMS is a multi-tenant, multi-warehouse platform that digitalizes and operationalizes the entire warehouse lifecycle:
+
+### Core goals
+
+1. **Real-time inventory truth**: every item movement is recorded and traceable.
+2. **Operational speed + accuracy**: barcode scanning + guided workflows reduce mistakes.
+3. **Client self-service**: clients can log in and see only their inventory, orders, documents, and invoices.
+4. **Automated billing**: monthly invoices generated from actual recorded warehouse activity (storage + handling + services).
+5. **Accountability**: audit logs for all actions; controlled approval for corrections.
+6. **Scalable foundation**: supports multiple warehouses, multiple clients, and future integrations.
+
+### Language requirement
+
+The system must support **three languages** end-to-end:
+
+* **English**
+* **Bosnian**
+* **German**
+
+This includes UI, emails, PDFs, labels, and system notifications.
+
+---
+
+## 3) What we are building (scope)
+
+### In scope (v1)
+
+* Authentication + role-based access control
+* Client portal (inventory visibility + order creation + reports + invoices)
+* Warehouse admin portal (operations oversight + configuration + billing)
+* Worker interface (mobile/PWA-first; scanning flows)
+* Inventory engine (ledger-based movements)
+* Inbound receiving workflow
+* Put-away (location assignment + confirmation)
+* Picking + packing workflow
+* Outbound dispatch workflow
+* Returns workflow
+* Stock discrepancy workflow (surplus/shortage) with approvals
+* Billing engine (monthly invoices + itemized lines)
+* Reports + exports (PDF/Excel/CSV)
+* Document center (store generated PDFs)
+* Notifications (email at minimum; optional SMS later)
+* Audit trail
+
+### Out of scope (v1, but planned)
+
+* Full TMS routing optimization
+* Deep ERP integrations (beyond basic API import/export)
+* Advanced ML forecasting
+* IoT sensors
+* Native mobile apps (PWA is fine for v1)
+
+---
+
+## 4) Users, logins, and tenancy model
+
+WLMS is **multi-tenant**:
+
+* The warehouse company uses WLMS to run operations.
+* Multiple **client companies** store goods in the warehouse.
+* Each client company has its own users.
+
+### Who logs in?
+
+1. **Warehouse Admin/Owner** (internal)
+   Manages operations, users, client accounts, pricing, billing, reports.
+2. **Warehouse Supervisor** (internal)
+   Similar to admin but may have limited configuration access.
+3. **Warehouse Worker** (internal)
+   Executes receiving, put-away, picking, packing, returns via scanning workflows.
+4. **Client Users** (external)
+   View inventory, create inbound/outbound requests, download docs/reports, view invoices.
+5. **Driver/Courier** (optional in v1)
+   Confirms delivery status + proof of delivery.
+
+### Tenancy rules (hard requirement)
+
+* **Client users must only ever access their own data** (enforced at backend, not just UI).
+* Warehouse internal roles can access all clients (depending on permission).
+
+---
+
+## 5) Product principles (how the system should behave)
+
+* **Ledger-first**: inventory is not “edited”; inventory changes are recorded as movements.
+* **Scan-first**: workers confirm actions by scanning product and location.
+* **Audit-first**: every action has user, timestamp, and context.
+* **Offline-tolerant** (recommended): worker interface can queue actions if network drops, then sync (can be phased).
+* **Document-as-output**: every important operation can generate a PDF (receiving, dispatch, discrepancy, invoice).
+* **Language preference per user**: each user selects EN/BA/DE.
+
+---
+
+## 6) Functional requirements by module (complete)
+
+### 6.1 Authentication & Security
+
+* Email + password login
+* JWT access + refresh tokens
+* Password reset via email
+* Optional MFA (phase 2)
+* Rate limiting on auth endpoints
+* RBAC (role-based access control) enforced at API
+* Per-user language preference stored (default English)
+
+**Acceptance criteria**
+
+* Client user cannot access another client by changing IDs.
+* All protected endpoints require valid token.
+* Role-based permissions block unauthorized actions.
+
+---
+
+### 6.2 Organization model (Client companies)
+
+* Admin can create a new client company:
+
+  * Company name, address, tax IDs (optional), billing profile, contact info
+* Admin can invite client users:
+
+  * Email invite → user sets password → gets client role
+* Client users see a “Client Portal” experience only
+
+**Acceptance criteria**
+
+* Every product, order, document, invoice is linked to a client company.
+* Client portal shows only that client’s assets.
+
+---
+
+### 6.3 Warehouses, zones, and locations
+
+The system must represent physical space:
+
+* Warehouse (W1, W2…)
+* Zones (e.g., Ambient, Cold, Returns, Quarantine, Packing)
+* Locations (barcode-labeled shelf slots / pallet positions)
+* Optional: Aisle/Rack/Level/Bin hierarchy
+
+**Location must be scannable**:
+
+* Each location has a unique code + barcode/QR label.
+
+**Acceptance criteria**
+
+* Worker must scan/confirm location for put-away and picking.
+* Inventory is always tied to a location (or “staging” zones).
+
+---
+
+### 6.4 Product catalog (per client)
+
+Clients and/or warehouse admin can define products:
+
+Fields (minimum):
+
+* client_id
+* sku (client-defined)
+* name
+* barcode (EAN/UPC or internal)
+* unit_of_measure (piece/carton/pallet)
+* carton_size (optional)
+* weight (optional)
+* dimensions (optional)
+* lot_tracking_enabled (bool)
+* expiry_tracking_enabled (bool)
+* default_expiry_days (optional)
+* handling_requirements (optional notes)
+
+Bulk import:
+
+* CSV/Excel import with validation and error reporting.
+
+**Acceptance criteria**
+
+* Duplicate SKU detection per client.
+* Barcode uniqueness per client (or global, choose one policy and enforce).
+
+---
+
+### 6.5 Inventory model (ledger + balances)
+
+**Ledger table** records movements:
+
+* INBOUND_RECEIVE (+)
+* PUTAWAY_MOVE (0 quantity change but location change) OR represented as move lines
+* PICK_RESERVE (reserve)
+* PICK_CONFIRM (- from available, + to staging)
+* PACK_CONFIRM (status)
+* OUTBOUND_DISPATCH (-)
+* RETURN_RECEIVE (+ to returns/quarantine/stock)
+* ADJUSTMENT_PLUS (+)
+* ADJUSTMENT_MINUS (-)
+* TRANSFER (between locations/warehouses)
+
+**Inventory balance** is derived and stored for fast reads:
+
+* on_hand
+* reserved
+* available = on_hand - reserved
+* per (product, warehouse, location, batch/lot, expiry)
+
+**Acceptance criteria**
+
+* You can reconstruct inventory history from ledger.
+* Every change is traceable to a document/task/user.
+
+---
+
+### 6.6 Inbound receiving (receiving shipments)
+
+Two ways inbound can start:
+
+1. **Client creates inbound notice** (recommended)
+2. **Warehouse creates inbound on arrival** (fallback)
+
+Inbound record includes:
+
+* client_id
+* warehouse_id
+* supplier (optional)
+* expected arrival date (optional)
+* lines: product_id, expected_qty, lot/batch, expiry (if applicable)
+
+Receiving flow (worker):
+
+1. Open inbound shipment (or create new).
+2. Scan product barcode (or search).
+3. Enter/confirm quantity received.
+4. Capture lot/batch & expiry if enabled.
+5. Print pallet label(s) if needed.
+6. Mark “Received to Staging”.
+
+System outputs:
+
+* Receiving document PDF
+* Inventory movements (+ into staging)
+
+**Acceptance criteria**
+
+* Receiving updates inventory in staging zone.
+* Lot/expiry required if product requires it.
+
+---
+
+### 6.7 Put-away (staging → storage location)
+
+Worker flow:
+
+1. View “Put-away tasks” (generated from received items in staging).
+2. System suggests a location (rules: zone match, space, product family).
+3. Worker scans pallet label + scans destination location label.
+4. Confirm move.
+
+System outputs:
+
+* Movement record: location change (or transfer)
+* Optional put-away document
+
+**Acceptance criteria**
+
+* Inventory now appears in that location.
+* Wrong-location scan warns and blocks unless supervisor override.
+
+---
+
+### 6.8 Outbound order creation (client portal)
+
+Client can create an outbound order:
+Fields:
+
+* destination (customer name/address/contact)
+* service level (standard/express) optional
+* requested ship date
+* lines: product_id, qty
+* notes
+
+System checks:
+
+* available stock
+* expiry/FEFO rules if enabled
+* reserves stock upon approval (configurable)
+
+Approval modes:
+
+* Auto-approve (small clients)
+* Admin approve required (default safe)
+
+**Acceptance criteria**
+
+* Cannot request more than available (unless allowed as backorder mode).
+* Reserved stock is reflected.
+
+---
+
+### 6.9 Picking (guided, scan-validated)
+
+Picking task generation:
+
+* Task groups by zone, location, route
+
+Worker flow:
+
+1. Open picking batch
+2. Go to location
+3. Scan location
+4. Scan product
+5. Confirm quantity picked
+6. Move to “Packing Staging” location/zone
+7. Repeat
+
+System enforces:
+
+* correct location
+* correct product
+* FEFO/lot selection (suggest earliest expiry first)
+
+**Acceptance criteria**
+
+* Picking cannot pick wrong SKU.
+* Picked quantity reduces available and updates staging.
+
+---
+
+### 6.10 Packing
+
+Packing station flow:
+
+* Confirm picked items per order
+* Print packing slip / labels
+* Mark order “Packed”
+
+Optional:
+
+* Capture carton count, weight, carrier
+
+**Acceptance criteria**
+
+* Packed orders are ready for dispatch and appear in dispatch queue.
+
+---
+
+### 6.11 Dispatch (outbound shipping)
+
+Dispatch flow:
+
+* Confirm loading
+* Generate dispatch document PDF
+* Mark as “Dispatched”
+* If driver module enabled: create delivery task
+
+**Acceptance criteria**
+
+* Dispatch finalizes stock decrement for outbound.
+
+---
+
+### 6.12 Returns
+
+Return flow:
+
+* Receive returned items
+* Scan SKU, capture qty
+* Choose disposition:
+
+  * Return to Stock
+  * Quarantine (needs inspection)
+  * Scrap/Dispose
+* Generate return document
+
+**Acceptance criteria**
+
+* Returned items go into correct zone and are visible to client (depending on policy).
+
+---
+
+### 6.13 Discrepancies (shortage/surplus) with approval
+
+Workers can report discrepancy when physical count mismatches system.
+
+Flow:
+
+1. Worker creates discrepancy report: product, location, counted qty, system qty, reason.
+2. System calculates delta.
+3. Status = “Pending Approval”
+4. Admin reviews:
+
+   * Approve → inventory adjustment movement applied
+   * Reject → no change, logged
+
+**Acceptance criteria**
+
+* No adjustment is applied without approval (unless admin role did it).
+
+---
+
+### 6.14 Billing & invoicing (monthly automation)
+
+Billing must support:
+
+* Storage fees (e.g., pallet-days)
+* Handling fees (receiving, picking, packing, dispatch)
+* Add-on services (labeling, repacking, printing)
+* Returns handling
+* Discrepancy handling (optional)
+
+Core billing inputs are from recorded system events:
+
+* number of pallets stored per day (or average pallet positions)
+* count of operations (inbound lines, outbound lines, picks, cartons)
+* configured price list per client
+
+Invoice generation:
+
+* Admin selects client + period
+* System calculates line items
+* Admin reviews
+* System generates PDF invoice + stores it
+* Invoice status: Draft → Issued → Paid (manual marking v1)
+
+**Acceptance criteria**
+
+* Every invoice line is traceable to underlying events (click-through drilldown).
+* Multi-language invoice output: based on client preference.
+
+---
+
+### 6.15 Reporting & exports
+
+Reports (minimum):
+
+* Inventory snapshot (by product, warehouse, location)
+* Expiry report
+* Movement history (filters)
+* Inbound/outbound volumes by date
+* Discrepancy report
+* Billing events report
+
+Exports:
+
+* CSV/Excel
+* PDF where appropriate
+
+**Acceptance criteria**
+
+* Client can export only their data.
+* Admin can export across clients.
+
+---
+
+### 6.16 Document center
+
+Store all generated documents:
+
+* Receiving documents
+* Dispatch documents
+* Discrepancy documents
+* Invoices
+* Packing slips
+
+Features:
+
+* Search by type, date, client, reference number
+* Download permission based on role/tenant
+
+---
+
+### 6.17 Notifications
+
+Minimum (v1):
+
+* Email notifications for:
+
+  * account invites
+  * password reset
+  * inbound received (optional)
+  * outbound dispatched (optional)
+  * invoice issued
+
+Phase 2:
+
+* SMS notifications for delivery attempts, etc.
+
+---
+
+## 7) UI wireframes (text blueprints) — all major screens
+
+### 7.1 Global UI elements
+
+* Top bar: language selector EN/BA/DE, user profile, logout
+* Left nav based on role
+* Notification center (optional)
+
+---
+
+### 7.2 Login screen
+
+* Language dropdown
+* Email, password
+* Login button
+* Forgot password
+* (Invite flow) “Set password” page
+
+---
+
+### 7.3 Admin Portal — Navigation
+
+* Dashboard
+* Clients
+* Warehouses & Locations
+* Products (global view with client filter)
+* Inbound
+* Put-away
+* Outbound Orders
+* Picking
+* Packing/Dispatch
+* Returns
+* Discrepancies
+* Billing & Invoices
+* Reports
+* Documents
+* Users & Roles
+* Settings (prices, templates, languages)
+
+---
+
+### 7.4 Admin Dashboard
+
+Cards:
+
+* Today inbound count
+* Today outbound count
+* Current occupied pallet positions
+* Discrepancies pending approval
+* Expiring items (next 30/60/90 days)
+  Charts:
+* Inbound/outbound over time
+* Top clients by activity
+
+---
+
+### 7.5 Clients management
+
+* Client list + create client
+* Client details:
+
+  * profile
+  * price list
+  * users
+  * preferred document language
+  * warehouses used
+
+---
+
+### 7.6 Worker UI (PWA-first)
+
+Home screen = big action buttons:
+
+* Receive
+* Put-away
+* Pick
+* Pack
+* Dispatch (optional for workers)
+* Returns
+* Report Issue
+
+Each flow:
+
+* full-screen scanner input
+* large buttons
+* minimal typing
+* offline queue indicator (optional)
+
+---
+
+### 7.7 Client Portal — Navigation
+
+* Dashboard
+* My Inventory
+* Create Inbound Notice
+* Create Outbound Order
+* Orders (status tracking)
+* Returns (status)
+* Invoices
+* Reports
+* Documents
+* Settings (users, language)
+
+---
+
+### 7.8 Client Inventory screen
+
+Table:
+
+* SKU, Name, On hand, Reserved, Available
+* Filters: warehouse, expiry range, product category
+* “View details” opens per-location breakdown
+
+---
+
+### 7.9 Outbound order creation screen
+
+* Destination form
+* Line item builder (product search + qty)
+* Validate availability
+* Submit
+
+---
+
+### 7.10 Invoices screen
+
+* List invoices by period
+* Status filter
+* Download PDF
+* View line items + drilldown
+
+---
+
+## 8) Data model (full schema blueprint)
+
+> The team should implement this as PostgreSQL with migrations. Names can be adjusted, but relationships must remain.
+
+### 8.1 Core tables
+
+**tenants (warehouse company)**
+
+* id, name, created_at
+  *(If single warehouse company, still keep for future SaaS.)*
+
+**clients**
+
+* id (uuid)
+* tenant_id
+* name
+* address
+* tax_id (optional)
+* billing_currency
+* preferred_language (en/bs/de)
+* created_at
+
+**users**
+
+* id (uuid)
+* tenant_id
+* client_id (nullable; set for client users)
+* email (unique)
+* password_hash
+* full_name
+* role
+* language_pref (en/bs/de)
+* is_active
+* created_at, last_login_at
+
+**warehouses**
+
+* id (uuid)
+* tenant_id
+* name
+* address
+* timezone
+* created_at
+
+**warehouse_zones**
+
+* id, warehouse_id
+* name (e.g., Ambient, Cold, Returns, Quarantine, Packing, Staging)
+* zone_type (STAGING, STORAGE, PACKING, RETURNS, QUARANTINE)
+* created_at
+
+**locations**
+
+* id, warehouse_id, zone_id
+* code (human-readable location code)
+* barcode_value (encoded string used by scanner)
+* aisle (optional), rack (optional), level (optional), bin (optional)
+* is_active
+* created_at
+
+**products**
+
+* id
+* tenant_id
+* client_id
+* sku
+* name
+* description
+* barcode
+* uom (piece/carton/pallet)
+* carton_qty (optional)
+* weight_kg (optional)
+* dims_cm_json (optional)
+* lot_tracking_enabled
+* expiry_tracking_enabled
+* created_at
+* unique(client_id, sku)
+* optional unique(client_id, barcode)
+
+**product_batches** (if lot/expiry)
+
+* id
+* product_id
+* batch_number
+* expiry_date (nullable)
+* created_at
+* unique(product_id, batch_number, expiry_date)
+
+### 8.2 Operational tables
+
+**inbound_shipments**
+
+* id
+* tenant_id
+* client_id
+* warehouse_id
+* reference_number (generated)
+* status (DRAFT, EXPECTED, RECEIVING, RECEIVED, CLOSED)
+* created_by_user_id
+* created_at, received_at
+
+**inbound_lines**
+
+* id
+* inbound_id
+* product_id
+* expected_qty (nullable)
+* received_qty
+* batch_id (nullable)
+* notes
+
+**outbound_orders**
+
+* id
+* tenant_id
+* client_id
+* warehouse_id
+* order_number (generated)
+* status (DRAFT, SUBMITTED, APPROVED, PICKING, PACKING, DISPATCHED, CANCELLED)
+* destination_json
+* requested_ship_date
+* created_by_user_id
+* created_at, dispatched_at
+
+**outbound_lines**
+
+* id
+* outbound_id
+* product_id
+* requested_qty
+* reserved_qty
+* picked_qty
+* batch_policy (FEFO/any/specific) optional
+
+**picking_tasks**
+
+* id
+* outbound_id
+* assigned_to_user_id (worker)
+* status (OPEN, IN_PROGRESS, DONE)
+* created_at, completed_at
+
+**picking_task_lines**
+
+* id
+* picking_task_id
+* product_id
+* batch_id (nullable)
+* from_location_id
+* qty_to_pick
+* qty_picked
+
+**returns**
+
+* id
+* tenant_id
+* client_id
+* warehouse_id
+* status (RECEIVED, INSPECTED, CLOSED)
+* created_by_user_id
+* created_at
+
+**return_lines**
+
+* id
+* return_id
+* product_id
+* batch_id (nullable)
+* qty
+* disposition (RESTOCK, QUARANTINE, SCRAP)
+* to_location_id
+
+**discrepancy_reports**
+
+* id
+* tenant_id
+* client_id
+* warehouse_id
+* product_id
+* batch_id (nullable)
+* location_id
+* system_qty
+* counted_qty
+* delta_qty
+* reason
+* status (PENDING, APPROVED, REJECTED)
+* created_by_user_id
+* approved_by_user_id (nullable)
+* created_at, decided_at
+
+### 8.3 Inventory + ledger
+
+**inventory_balances**
+
+* id
+* tenant_id
+* client_id
+* warehouse_id
+* product_id
+* batch_id (nullable)
+* location_id
+* on_hand_qty
+* reserved_qty
+* available_qty (computed or stored)
+* updated_at
+* unique(product_id, batch_id, location_id)
+
+**inventory_ledger**
+
+* id
+* tenant_id
+* client_id
+* warehouse_id
+* product_id
+* batch_id (nullable)
+* from_location_id (nullable)
+* to_location_id (nullable)
+* qty_delta (signed)
+* event_type (INBOUND_RECEIVE, PUTAWAY_MOVE, RESERVE, PICK, PACK, DISPATCH, RETURN, ADJUSTMENT, TRANSFER)
+* reference_type (INBOUND, OUTBOUND, RETURN, DISCREPANCY, MANUAL)
+* reference_id
+* performed_by_user_id
+* created_at
+
+### 8.4 Billing
+
+**price_lists**
+
+* id
+* client_id
+* effective_from
+* rules_json (see below)
+* created_at
+
+**billing_events**
+
+* id
+* client_id
+* warehouse_id
+* event_type (STORAGE_DAY, INBOUND_PALLET, INBOUND_LINE, OUTBOUND_LINE, PICK_LINE, PACK_ORDER, DISPATCH_ORDER, RETURN_LINE, PRINT_PAGE, LABELING, REPACK)
+* quantity
+* unit_price
+* total_price
+* reference_type
+* reference_id
+* event_date
+* created_at
+
+**invoices**
+
+* id
+* client_id
+* period_start
+* period_end
+* status (DRAFT, ISSUED, PAID, CANCELLED)
+* currency
+* subtotal
+* tax_total
+* total
+* pdf_file_id
+* issued_at
+* created_at
+
+**invoice_lines**
+
+* id
+* invoice_id
+* description_key (for translation)
+* description_params_json
+* quantity
+* unit_price
+* total_price
+* tax_rate
+* drilldown_query_json (how to fetch underlying events)
+
+### 8.5 Documents & files
+
+**files**
+
+* id
+* tenant_id
+* client_id (nullable)
+* file_type (INVOICE_PDF, RECEIVING_PDF, DISPATCH_PDF, REPORT_EXPORT)
+* storage_provider (S3/MINIO)
+* storage_key
+* original_name
+* mime_type
+* size_bytes
+* created_by_user_id
+* created_at
+
+### 8.6 Audit
+
+**audit_logs**
+
+* id
+* tenant_id
+* actor_user_id
+* action (string)
+* entity_type
+* entity_id
+* before_json (optional)
+* after_json (optional)
+* ip_address (optional)
+* user_agent (optional)
+* created_at
+
+---
+
+## 9) Pricing rules (how to model billing)
+
+Price list rules should support:
+
+* Storage: per pallet-position-day OR per pallet-day
+* Handling: per inbound pallet, per inbound line, per outbound line, per pick line, per carton, etc.
+* Extras: labeling, repack, printing
+
+Recommended approach:
+
+* Store pricing in `price_lists.rules_json` like:
+
+```json
+{
+  "currency": "BAM",
+  "storage": { "type": "PALLET_DAY", "unit_price": 8.50 },
+  "inbound": { "per_pallet": 2.50, "per_document": 2.50 },
+  "outbound": { "per_order": 3.50, "per_carton_pick": 0.30, "per_piece_pick": 0.20 },
+  "printing": { "per_page": 0.07 },
+  "labeling": { "per_item": 0.09 }
+}
+```
+
+Billing events are generated automatically from operations:
+
+* Receiving confirms → generate inbound events
+* Daily cron → generate storage-day events from `inventory_balances`
+* Dispatch confirms → outbound events
+* Prints → printing events
+
+Invoices aggregate billing events for a period.
+
+---
+
+## 10) API specification (detailed endpoints)
+
+### 10.1 Auth
+
+* `POST /api/v1/auth/login`
+  body: { email, password } → { access_token, refresh_token, user, permissions }
+* `POST /api/v1/auth/refresh`
+* `POST /api/v1/auth/forgot-password`
+* `POST /api/v1/auth/reset-password`
+* `POST /api/v1/auth/logout`
+
+### 10.2 Users & roles
+
+* `GET /api/v1/users` (admin)
+* `POST /api/v1/users` (admin create worker/admin/client user)
+* `PUT /api/v1/users/{id}`
+* `DELETE /api/v1/users/{id}`
+* `POST /api/v1/users/invite` (invite client user)
+
+### 10.3 Clients
+
+* `GET /api/v1/clients`
+* `POST /api/v1/clients`
+* `GET /api/v1/clients/{id}`
+* `PUT /api/v1/clients/{id}`
+* `GET /api/v1/clients/{id}/price-list`
+* `PUT /api/v1/clients/{id}/price-list`
+
+### 10.4 Warehouses & locations
+
+* `GET /api/v1/warehouses`
+* `POST /api/v1/warehouses`
+* `GET /api/v1/warehouses/{id}/zones`
+* `POST /api/v1/warehouses/{id}/zones`
+* `GET /api/v1/warehouses/{id}/locations`
+* `POST /api/v1/warehouses/{id}/locations`
+* `POST /api/v1/warehouses/{id}/locations/bulk` (import)
+* `GET /api/v1/locations/{id}`
+
+### 10.5 Products
+
+* `GET /api/v1/products` (scoped by role)
+* `POST /api/v1/products`
+* `PUT /api/v1/products/{id}`
+* `DELETE /api/v1/products/{id}`
+* `POST /api/v1/products/import` (CSV/Excel)
+* `GET /api/v1/products/export`
+
+### 10.6 Inventory
+
+* `GET /api/v1/inventory/balances` (filters: client, warehouse, product, location, expiry)
+* `GET /api/v1/inventory/movements` (ledger search)
+* `POST /api/v1/inventory/transfer` (move between locations)
+* `POST /api/v1/inventory/reserve` (system internal for outbound approval)
+
+### 10.7 Inbound
+
+* `POST /api/v1/inbound` (create inbound)
+* `GET /api/v1/inbound`
+* `GET /api/v1/inbound/{id}`
+* `POST /api/v1/inbound/{id}/start-receiving`
+* `POST /api/v1/inbound/{id}/scan-line`
+
+  * body: { barcode, qty, batch_number?, expiry_date?, location_staging_id }
+* `POST /api/v1/inbound/{id}/complete`
+* `GET /api/v1/inbound/{id}/document` (PDF)
+
+### 10.8 Put-away
+
+* `GET /api/v1/putaway/tasks`
+* `POST /api/v1/putaway/confirm`
+
+  * body: { product_id, batch_id?, qty, from_location_id, to_location_id }
+
+### 10.9 Outbound
+
+* `POST /api/v1/outbound` (client creates)
+* `GET /api/v1/outbound`
+* `GET /api/v1/outbound/{id}`
+* `POST /api/v1/outbound/{id}/approve` (admin)
+* `POST /api/v1/outbound/{id}/generate-picks`
+* `GET /api/v1/outbound/{id}/document` (PDF after dispatch)
+
+### 10.10 Picking/Packing/Dispatch
+
+* `GET /api/v1/picking/tasks`
+* `POST /api/v1/picking/tasks/{id}/start`
+* `POST /api/v1/picking/tasks/{id}/scan`
+
+  * body: { location_barcode, product_barcode, qty_picked }
+* `POST /api/v1/picking/tasks/{id}/complete`
+* `POST /api/v1/packing/{outbound_id}/confirm`
+* `POST /api/v1/dispatch/{outbound_id}/confirm`
+
+  * generates dispatch doc + billing events
+
+### 10.11 Returns
+
+* `POST /api/v1/returns`
+* `POST /api/v1/returns/{id}/scan-line`
+* `POST /api/v1/returns/{id}/complete`
+* `GET /api/v1/returns/{id}/document`
+
+### 10.12 Discrepancies
+
+* `POST /api/v1/discrepancies`
+* `GET /api/v1/discrepancies`
+* `POST /api/v1/discrepancies/{id}/approve`
+* `POST /api/v1/discrepancies/{id}/reject`
+* `GET /api/v1/discrepancies/{id}/document`
+
+### 10.13 Billing & invoices
+
+* `POST /api/v1/billing/run-daily-storage` (cron)
+* `POST /api/v1/invoices/generate`
+
+  * body: { client_id, period_start, period_end, language? }
+* `GET /api/v1/invoices`
+* `GET /api/v1/invoices/{id}`
+* `GET /api/v1/invoices/{id}/pdf`
+* `POST /api/v1/invoices/{id}/mark-paid`
+
+### 10.14 Documents & files
+
+* `GET /api/v1/files`
+* `GET /api/v1/files/{id}/download`
+
+---
+
+## 11) Tech stack and architecture (recommended)
+
+### Frontend
+
+* **Next.js (App Router)** for Admin + Client portals
+* **Next.js PWA** (or separate PWA route group) for Worker UI
+* i18n: `next-intl` or `next-i18next`
+* State/data: TanStack Query
+* UI: Tailwind + shadcn/ui
+
+### Backend
+
+* **Python FastAPI**
+* PostgreSQL
+* Redis (queues, caching, rate limiting)
+* Celery (background tasks: PDFs, invoice generation, nightly storage billing)
+* Object storage: MinIO (S3-compatible) or AWS S3
+
+### Services breakdown (logical)
+
+* Auth Service (JWT, RBAC)
+* Inventory Service (ledger + balances)
+* Operations Service (inbound/outbound/tasks)
+* Billing Service (events + invoices)
+* Document Service (PDF generation + file storage)
+* Notification Service (email)
+
+---
+
+## 12) Folder structure (complete)
+
+### Frontend (Next.js)
+
+```
+wlms-frontend/
+  src/
+    app/
+      (auth)/
+        login/
+        reset-password/
+      (admin)/
+        admin/
+          dashboard/
+          clients/
+          warehouses/
+          locations/
+          products/
+          inbound/
+          putaway/
+          outbound/
+          picking/
+          packing/
+          dispatch/
+          returns/
+          discrepancies/
+          billing/
+          invoices/
+          reports/
+          documents/
+          users/
+          settings/
+      (client)/
+        portal/
+          dashboard/
+          inventory/
+          inbound/
+          outbound/
+          returns/
+          invoices/
+          reports/
+          documents/
+          settings/
+      (worker)/
+        worker/
+          home/
+          receive/
+          putaway/
+          pick/
+          pack/
+          dispatch/
+          returns/
+          issue/
+    components/
+      ui/
+      layout/
+      tables/
+      forms/
+      scanner/
+    lib/
+      api/
+      auth/
+      i18n/
+      validators/
+    store/
+    styles/
+    types/
+    middleware.ts
+```
+
+### Backend (FastAPI)
+
+```
+wlms-backend/
+  app/
+    main.py
+    core/
+      config.py
+      security.py
+      rbac.py
+      i18n.py
+      logging.py
+    db/
+      session.py
+      migrations/
+    models/
+      user.py
+      client.py
+      warehouse.py
+      location.py
+      product.py
+      inventory.py
+      inbound.py
+      outbound.py
+      billing.py
+      files.py
+      audit.py
+    schemas/
+      auth.py
+      user.py
+      client.py
+      warehouse.py
+      product.py
+      inventory.py
+      inbound.py
+      outbound.py
+      billing.py
+    api/
+      v1/
+        routes_auth.py
+        routes_users.py
+        routes_clients.py
+        routes_warehouses.py
+        routes_products.py
+        routes_inventory.py
+        routes_inbound.py
+        routes_putaway.py
+        routes_outbound.py
+        routes_picking.py
+        routes_returns.py
+        routes_discrepancies.py
+        routes_invoices.py
+        routes_files.py
+    services/
+      inventory_service.py
+      inbound_service.py
+      outbound_service.py
+      picking_service.py
+      billing_service.py
+      document_service.py
+      notification_service.py
+      audit_service.py
+    workers/
+      celery_app.py
+      tasks_documents.py
+      tasks_billing.py
+    utils/
+      pdf_templates/
+      barcode.py
+      storage.py
+      time.py
+```
+
+---
+
+## 13) PDF generation and templates
+
+System must generate PDFs for:
+
+* Receiving document
+* Dispatch document
+* Discrepancy document
+* Invoice
+* Reports exports
+
+Implementation:
+
+* Backend generates PDFs using HTML templates (Jinja2) + `weasyprint` or `wkhtmltopdf`
+* Templates localized via translation keys
+
+---
+
+## 14) Barcode scanning strategy
+
+Worker UI must support:
+
+* Camera barcode scanning on phones (ZXing / `react-zxing`)
+* Manual entry fallback (type barcode)
+* Location labels are QR/Barcode
+* Product barcodes are EAN/UPC or internal
+
+Rule: **All operational confirmations should be scan-validated**.
+
+---
+
+## 15) i18n strategy (EN/BA/DE)
+
+* Use translation keys everywhere.
+* Never hardcode text.
+* Store language per user.
+* Client invoices/documents generated in:
+
+  * client preferred language, else admin-selected language
+
+Example translation key approach:
+
+* `invoice.line.storage_pallet_day`
+* `workflow.inbound.received_success`
+* etc.
+
+---
+
+## 16) Security, audit, and compliance
+
+* All write operations create audit log entries.
+* Client scoping enforced in query layer (server-side).
+* Soft-delete where required.
+* Maintain immutable ledger entries.
+
+---
+
+## 17) DevOps and deployment (recommended)
+
+* Docker for frontend and backend
+* NGINX reverse proxy
+* PostgreSQL managed or containerized
+* Redis container
+* MinIO container
+* CI/CD: GitHub Actions
+
+Environments:
+
+* dev
+* staging
+* production
+
+---
+
+## 18) Testing plan (must-have)
+
+* Unit tests:
+
+  * inventory ledger updates
+  * reservation logic
+  * invoice generation logic
+* Integration tests:
+
+  * inbound full flow
+  * outbound full flow
+  * client scoping
+* E2E tests (Playwright):
+
+  * client creates outbound order
+  * worker picks and dispatches
+  * invoice is generated
+
+---
+
+## 19) Milestones (delivery roadmap)
+
+**Phase 1 — Core MVP**
+
+* Auth + roles + clients
+* warehouses/locations
+* products import
+* inbound receiving + put-away
+* inventory balances + ledger
+* client portal inventory view
+
+**Phase 2 — Outbound operations**
+
+* outbound order creation
+* picking tasks + packing + dispatch
+* discrepancy flow
+
+**Phase 3 — Billing + documents**
+
+* billing events
+* invoices + PDFs
+* reports center
+
+**Phase 4 — Returns + driver module**
+
+* returns workflows
+* delivery confirmation (optional)
+
+---
+
+## 20) “Definition of Done” checklist (system-level)
+
+* ✅ All flows scan-validated and auditable
+* ✅ Client isolation enforced at backend
+* ✅ Multi-language works across UI + PDFs
+* ✅ Inventory matches ledger (reconcilable)
+* ✅ Invoices traceable to events
+* ✅ Worker UI usable on mobile
+* ✅ Admin portal complete for operations
+* ✅ Document center stores and retrieves PDFs
+* ✅ CI/CD runs tests and builds containers
+* ✅ Production deployment runs with observability logs
+
+---
+

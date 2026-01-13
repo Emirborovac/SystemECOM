@@ -1,0 +1,23 @@
+repos:
+  - repo: local
+    hooks:
+      - id: wlms-backend-ruff
+        name: wlms-backend ruff
+        entry: ruff check
+        language: system
+        types: [python]
+        files: ^wlms-backend/
+      - id: wlms-backend-black
+        name: wlms-backend black (check)
+        entry: black --check
+        language: system
+        types: [python]
+        files: ^wlms-backend/
+      - id: wlms-backend-mypy
+        name: wlms-backend mypy
+        entry: mypy
+        language: system
+        types: [python]
+        files: ^wlms-backend/
+
+
