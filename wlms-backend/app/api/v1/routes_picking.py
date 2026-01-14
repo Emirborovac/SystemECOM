@@ -75,9 +75,9 @@ def list_task_lines(task_id: str, db: Session = Depends(get_db), user: User = De
 @router.post("/tasks/{task_id}/start")
 def start_task(
     task_id: str,
+    request: Request,
     db: Session = Depends(get_db),
     user: User = Depends(require_warehouse_staff),
-    request: Request | None = None,
 ) -> dict[str, str]:
     try:
         tid = uuid.UUID(task_id)
@@ -120,9 +120,9 @@ class PickingScanBody(PutawayConfirm):
 def scan_pick(
     task_id: str,
     payload: PickingScanBody,
+    request: Request,
     db: Session = Depends(get_db),
     user: User = Depends(require_warehouse_staff),
-    request: Request | None = None,
 ) -> dict[str, str]:
     try:
         tid = uuid.UUID(task_id)
@@ -215,9 +215,9 @@ def scan_pick(
 @router.post("/tasks/{task_id}/complete")
 def complete_task(
     task_id: str,
+    request: Request,
     db: Session = Depends(get_db),
     user: User = Depends(require_warehouse_staff),
-    request: Request | None = None,
 ) -> dict[str, str]:
     try:
         tid = uuid.UUID(task_id)

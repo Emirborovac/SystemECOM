@@ -38,9 +38,9 @@ class PackingConfirmBody(BaseModel):
 def packing_confirm(
     outbound_id: str,
     payload: PackingConfirmBody,
+    request: Request,
     db: Session = Depends(get_db),
     user: User = Depends(require_warehouse_staff),
-    request: Request | None = None,
 ) -> dict[str, str]:
     try:
         oid = uuid.UUID(outbound_id)
@@ -146,9 +146,9 @@ class DispatchConfirmBody(BaseModel):
 def dispatch_confirm(
     outbound_id: str,
     payload: DispatchConfirmBody,
+    request: Request,
     db: Session = Depends(get_db),
     user: User = Depends(require_warehouse_staff),
-    request: Request | None = None,
 ) -> dict[str, str]:
     try:
         oid = uuid.UUID(outbound_id)

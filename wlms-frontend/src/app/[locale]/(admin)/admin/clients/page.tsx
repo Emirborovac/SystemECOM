@@ -52,7 +52,7 @@ export default function AdminClientsPage() {
             {t("create")}
           </div>
           <form
-            className="mt-3 flex flex-col gap-3 sm:flex-row"
+            className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center"
             onSubmit={async (e) => {
               e.preventDefault();
               setError(null);
@@ -69,22 +69,22 @@ export default function AdminClientsPage() {
             }}
           >
             <input
-              className="input flex-1"
+              className="input flex-1 min-w-[250px]"
               placeholder={t("namePlaceholder")}
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
-            <select className="input" value={preferredLanguage} onChange={(e) => setPreferredLanguage(e.target.value)}>
+            <select className="input w-24" value={preferredLanguage} onChange={(e) => setPreferredLanguage(e.target.value)}>
               <option value="en">en</option>
               <option value="bs">bs</option>
               <option value="de">de</option>
             </select>
-            <select className="input" value={currency} onChange={(e) => setCurrency(e.target.value)}>
+            <select className="input w-28" value={currency} onChange={(e) => setCurrency(e.target.value)}>
               <option value="BAM">BAM</option>
               <option value="EUR">EUR</option>
             </select>
-            <input className="input" type="number" step="0.01" min={0} max={1} value={vatRate} onChange={(e) => setVatRate(Number(e.target.value))} />
-            <button className="btn btn-primary" type="submit">
+            <input className="input w-32" type="number" step="0.01" min={0} max={1} value={vatRate} onChange={(e) => setVatRate(Number(e.target.value))} placeholder="0.17" />
+            <button className="btn btn-primary whitespace-nowrap" type="submit">
               {c("create")}
             </button>
           </form>

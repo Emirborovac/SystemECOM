@@ -47,9 +47,9 @@ def list_returns(db: Session = Depends(get_db), user: User = Depends(get_current
 @router.post("", response_model=ReturnOut, status_code=status.HTTP_201_CREATED)
 def create_return(
     payload: ReturnCreate,
+    request: Request,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
-    request: Request | None = None,
 ) -> ReturnOut:
     if is_client_user(user):
         if user.client_id is None or user.client_id != payload.client_id:
@@ -93,9 +93,9 @@ def create_return(
 def scan_line(
     return_id: str,
     payload: ReturnScanLine,
+    request: Request,
     db: Session = Depends(get_db),
     user: User = Depends(require_warehouse_staff),
-    request: Request | None = None,
 ) -> dict[str, str]:
     try:
         rid = uuid.UUID(return_id)
@@ -176,9 +176,9 @@ def scan_line(
 @router.post("/{return_id}/complete")
 def complete_return(
     return_id: str,
+    request: Request,
     db: Session = Depends(get_db),
     user: User = Depends(require_warehouse_staff),
-    request: Request | None = None,
 ) -> dict[str, str]:
     try:
         rid = uuid.UUID(return_id)

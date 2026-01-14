@@ -4,7 +4,7 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: wlms
+      POSTGRES_DB: systemecom
     ports:
       - "5432:5432"
     volumes:
@@ -28,7 +28,7 @@ services:
       - wlms_minio:/data
 
   minio-init:
-    image: minio/mc:RELEASE.2025-01-17T20-41-10Z
+    image: minio/mc:latest
     depends_on:
       - minio
     entrypoint: >
@@ -45,7 +45,7 @@ services:
     environment:
       ENV: dev
       APP_NAME: SystemECOM
-      DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/wlms
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/systemecom
       REDIS_URL: redis://redis:6379/0
       JWT_SECRET: dev-only-change-me
       ACCESS_TOKEN_EXPIRES_MINUTES: "30"

@@ -76,9 +76,9 @@ def list_outbound(
 @router.post("", response_model=OutboundOut, status_code=status.HTTP_201_CREATED)
 def create_outbound(
     payload: OutboundCreate,
+    request: Request,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
-    request: Request | None = None,
 ) -> OutboundOut:
     if not payload.lines:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="At least 1 line is required")
@@ -201,9 +201,9 @@ def get_outbound_lines(
 @router.post("/{outbound_id}/approve")
 def approve_outbound(
     outbound_id: str,
+    request: Request,
     db: Session = Depends(get_db),
     user: User = Depends(require_admin_or_supervisor),
-    request: Request | None = None,
 ) -> dict[str, str]:
     try:
         oid = uuid.UUID(outbound_id)

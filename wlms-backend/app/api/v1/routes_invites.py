@@ -22,9 +22,9 @@ router = APIRouter(prefix="/users", tags=["users"])
 @router.post("/invite")
 def invite_user(
     payload: InviteCreate,
+    request: Request,
     db: Session = Depends(get_db),
     user: User = Depends(require_admin_or_supervisor),
-    request: Request | None = None,
 ) -> dict[str, str]:
     client = db.scalar(select(Client).where(Client.id == payload.client_id, Client.tenant_id == user.tenant_id))
     if client is None:
@@ -59,7 +59,7 @@ def invite_user(
 
 
 @router.post("/invite/accept")
-def accept_invite(payload: InviteAccept, db: Session = Depends(get_db), request: Request | None = None) -> dict[str, str]:
+def accept_invite(payload: InviteAccept, request: Request, db: Session = Depends(get_db)) -> dict[str, str]:
     inv = db.scalar(select(UserInvite).where(UserInvite.token == payload.token))
     if inv is None or inv.accepted_at is not None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid token")

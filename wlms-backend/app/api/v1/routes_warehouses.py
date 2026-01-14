@@ -40,7 +40,10 @@ def list_warehouses(db: Session = Depends(get_db), user: User = Depends(require_
 
 @router.post("", response_model=WarehouseOut, status_code=status.HTTP_201_CREATED)
 def create_warehouse(
-    payload: WarehouseCreate, db: Session = Depends(get_db), user: User = Depends(require_warehouse_staff), request: Request | None = None
+    payload: WarehouseCreate,
+    request: Request,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_warehouse_staff),
 ) -> WarehouseOut:
     w = Warehouse(tenant_id=user.tenant_id, name=payload.name, address=payload.address, timezone=payload.timezone)
     db.add(w)
@@ -65,9 +68,9 @@ def create_warehouse(
 def update_warehouse(
     warehouse_id: str,
     payload: WarehouseUpdate,
+    request: Request,
     db: Session = Depends(get_db),
     user: User = Depends(require_warehouse_staff),
-    request: Request | None = None,
 ) -> WarehouseOut:
     try:
         wid = uuid.UUID(warehouse_id)
@@ -120,9 +123,9 @@ def list_zones(
 def create_zone(
     warehouse_id: str,
     payload: WarehouseZoneCreate,
+    request: Request,
     db: Session = Depends(get_db),
     user: User = Depends(require_warehouse_staff),
-    request: Request | None = None,
 ) -> WarehouseZoneOut:
     try:
         wid = uuid.UUID(warehouse_id)
@@ -187,9 +190,9 @@ def list_locations(
 def create_location(
     warehouse_id: str,
     payload: LocationCreate,
+    request: Request,
     db: Session = Depends(get_db),
     user: User = Depends(require_warehouse_staff),
-    request: Request | None = None,
 ) -> LocationOut:
     try:
         wid = uuid.UUID(warehouse_id)
@@ -248,10 +251,10 @@ def create_location(
 def import_locations_csv(
     warehouse_id: str,
     zone_id: int,
+    request: Request,
     file: UploadFile = UploadFileParam(...),
     db: Session = Depends(get_db),
     user: User = Depends(require_warehouse_staff),
-    request: Request | None = None,
 ) -> dict:
     try:
         wid = uuid.UUID(warehouse_id)

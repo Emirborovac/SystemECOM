@@ -135,9 +135,9 @@ def list_movements(
 @router.post("/transfer")
 def transfer(
     payload: InventoryTransfer,
+    request: Request,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
-    request: Request | None = None,
 ) -> dict[str, str]:
     if payload.qty <= 0:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="qty must be > 0")

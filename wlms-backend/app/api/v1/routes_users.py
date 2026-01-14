@@ -49,9 +49,9 @@ def me(db: Session = Depends(get_db), user: User = Depends(get_current_user)) ->
 @router.patch("/me", response_model=UserOut)
 def update_me(
     payload: UserMeUpdate,
+    request: Request,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
-    request: Request | None = None,
 ) -> UserOut:
     before = _to_out(user).model_dump()
     if payload.full_name is not None:
@@ -83,9 +83,9 @@ def update_me(
 @router.post("", response_model=UserOut, status_code=status.HTTP_201_CREATED)
 def create_user(
     payload: UserCreate,
+    request: Request,
     db: Session = Depends(get_db),
     user: User = Depends(require_admin_or_supervisor),
-    request: Request | None = None,
 ) -> UserOut:
     # If creating a client user, must specify client_id and it must belong to the same tenant.
     if payload.role == ROLE_CLIENT_USER:

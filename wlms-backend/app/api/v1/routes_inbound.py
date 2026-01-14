@@ -74,9 +74,9 @@ def list_inbound(db: Session = Depends(get_db), user: User = Depends(get_current
 @router.post("", response_model=InboundOut, status_code=status.HTTP_201_CREATED)
 def create_inbound(
     payload: InboundCreate,
+    request: Request,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
-    request: Request | None = None,
 ) -> InboundOut:
     # Client users can only create inbound for their client.
     if is_client_user(user):
@@ -143,9 +143,9 @@ def get_inbound(inbound_id: str, db: Session = Depends(get_db), user: User = Dep
 @router.post("/{inbound_id}/start-receiving")
 def start_receiving(
     inbound_id: str,
+    request: Request,
     db: Session = Depends(get_db),
     user: User = Depends(require_warehouse_staff),
-    request: Request | None = None,
 ) -> dict[str, str]:
     try:
         iid = uuid.UUID(inbound_id)
@@ -178,9 +178,9 @@ def start_receiving(
 def scan_line(
     inbound_id: str,
     payload: InboundScanLine,
+    request: Request,
     db: Session = Depends(get_db),
     user: User = Depends(require_warehouse_staff),
-    request: Request | None = None,
 ) -> InboundLineOut:
     try:
         iid = uuid.UUID(inbound_id)
@@ -296,9 +296,9 @@ def scan_line(
 @router.post("/{inbound_id}/complete")
 def complete_inbound(
     inbound_id: str,
+    request: Request,
     db: Session = Depends(get_db),
     user: User = Depends(require_warehouse_staff),
-    request: Request | None = None,
 ) -> dict[str, str]:
     try:
         iid = uuid.UUID(inbound_id)

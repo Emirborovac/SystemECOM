@@ -1,6 +1,7 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
+import { usePathname } from "next/navigation";
 
 import type { Locale } from "@/lib/i18n/routing";
 
@@ -9,6 +10,7 @@ type NavKind = "admin" | "client" | "worker";
 export function Sidebar({ nav }: { nav: NavKind }) {
   const locale = useLocale() as Locale;
   const t = useTranslations("nav");
+  const pathname = usePathname();
 
   const links =
     nav === "admin"
@@ -58,11 +60,40 @@ export function Sidebar({ nav }: { nav: NavKind }) {
   return (
     <aside className="card p-4">
       <nav className="flex flex-col gap-2">
-        {links.map((l) => (
-          <a key={l.href} className="btn btn-ghost justify-start" href={l.href}>
-            {l.label}
-          </a>
-        ))}
+        {links.map((l) => {
+          const isActive = pathname === l.href;
+          return (
+            <a 
+              key={l.href} 
+              className="btn justify-start" 
+              style={{ 
+                backgroundColor: isActive ? '#952323' : '#093b8b', 
+                color: 'white',
+                border: isActive ? '1px solid #952323' : '1px solid #093b8b',
+                boxShadow: isActive 
+                  ? '0 2px 4px rgba(149, 35, 35, 0.3), 0 1px 2px rgba(149, 35, 35, 0.2), inset 0 -1px 0 rgba(0, 0, 0, 0.15)'
+                  : '0 2px 4px rgba(9, 59, 139, 0.2), 0 1px 2px rgba(9, 59, 139, 0.1), inset 0 -1px 0 rgba(0, 0, 0, 0.1)',
+                transition: 'all 0.2s ease',
+                fontWeight: isActive ? '600' : '400'
+              }}
+              onMouseEnter={(e) => {
+                if (!isActive) {
+                  e.currentTarget.style.boxShadow = '0 4px 8px rgba(9, 59, 139, 0.3), 0 2px 4px rgba(9, 59, 139, 0.2), inset 0 -1px 0 rgba(0, 0, 0, 0.15)';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isActive) {
+                  e.currentTarget.style.boxShadow = '0 2px 4px rgba(9, 59, 139, 0.2), 0 1px 2px rgba(9, 59, 139, 0.1), inset 0 -1px 0 rgba(0, 0, 0, 0.1)';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }
+              }}
+              href={l.href}
+            >
+              {l.label}
+            </a>
+          );
+        })}
       </nav>
     </aside>
   );

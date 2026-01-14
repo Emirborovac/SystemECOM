@@ -67,9 +67,9 @@ def list_products(
 @router.post("", response_model=ProductOut, status_code=status.HTTP_201_CREATED)
 def create_product(
     payload: ProductCreate,
+    request: Request,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
-    request: Request | None = None,
 ) -> ProductOut:
     # Client users can only create for their own client_id
     if is_client_user(user):
@@ -129,10 +129,10 @@ def create_product(
 @router.post("/import-csv")
 def import_products_csv(
     client_id: str,
+    request: Request,
     file: UploadFile = UploadFileParam(...),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
-    request: Request | None = None,
 ) -> dict:
     # Only warehouse roles can bulk import
     if user.role not in {ROLE_WAREHOUSE_ADMIN, ROLE_WAREHOUSE_SUPERVISOR}:
@@ -241,9 +241,9 @@ def get_product(
 def update_product(
     product_id: str,
     payload: ProductUpdate,
+    request: Request,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
-    request: Request | None = None,
 ) -> ProductOut:
     try:
         pid = uuid.UUID(product_id)

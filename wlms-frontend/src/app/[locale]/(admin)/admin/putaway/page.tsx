@@ -88,12 +88,12 @@ export default function AdminPutawayPage() {
                 </tr>
               </thead>
               <tbody>
-                {items.map((t, idx) => (
-                  <tr key={`${t.from_location_id}-${t.product_id}-${idx}`} className="border-b border-border">
-                    <td className="py-2">{t.on_hand_qty}</td>
-                    <td className="py-2 font-mono text-xs">{t.from_location_id}</td>
-                    <td className="py-2 font-mono text-xs">{t.product_id}</td>
-                    <td className="py-2 font-mono text-xs">{t.batch_id ?? "—"}</td>
+                {items.map((task, idx) => (
+                  <tr key={`${task.from_location_id}-${task.product_id}-${idx}`} className="border-b border-border">
+                    <td className="py-2">{task.on_hand_qty}</td>
+                    <td className="py-2 font-mono text-xs">{task.from_location_id}</td>
+                    <td className="py-2 font-mono text-xs">{task.product_id}</td>
+                    <td className="py-2 font-mono text-xs">{task.batch_id ?? "—"}</td>
                     <td className="py-2">
                       <button
                         className="btn btn-primary"
@@ -108,10 +108,10 @@ export default function AdminPutawayPage() {
                             await api("/api/v1/putaway/confirm", {
                               method: "POST",
                               body: {
-                                product_id: t.product_id,
-                                batch_id: t.batch_id,
+                                product_id: task.product_id,
+                                batch_id: task.batch_id,
                                 qty,
-                                from_location_id: t.from_location_id,
+                                from_location_id: task.from_location_id,
                                 to_location_id: toLocationId
                               }
                             });

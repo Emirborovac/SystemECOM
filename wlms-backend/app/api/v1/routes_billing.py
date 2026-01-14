@@ -69,9 +69,9 @@ def get_price_list(
 def upsert_price_list(
     client_id: str,
     payload: PriceListUpsert,
+    request: Request,
     db: Session = Depends(get_db),
     _user: User = Depends(require_admin_or_supervisor),
-    request: Request | None = None,
 ) -> PriceListOut:
     try:
         cid = uuid.UUID(client_id)
@@ -105,9 +105,9 @@ def upsert_price_list(
 @router.post("/billing/run-daily-storage")
 def run_daily_storage(
     payload: RunDailyStorageBody,
+    request: Request,
     db: Session = Depends(get_db),
     _user: User = Depends(require_admin_or_supervisor),
-    request: Request | None = None,
 ) -> dict[str, int]:
     created = billing_service.run_daily_storage(db, event_date=payload.event_date)
     audit_log(
@@ -128,9 +128,9 @@ def run_daily_storage(
 @router.post("/invoices/generate", response_model=InvoiceOut)
 def generate_invoice(
     payload: GenerateInvoiceBody,
+    request: Request,
     db: Session = Depends(get_db),
     user: User = Depends(require_admin_or_supervisor),
-    request: Request | None = None,
 ) -> InvoiceOut:
     # Enforce tenant scoping via client ownership
     client = db.scalar(select(Client).where(Client.id == payload.client_id, Client.tenant_id == user.tenant_id))
@@ -263,9 +263,9 @@ def list_invoice_events(invoice_id: str, db: Session = Depends(get_db), user: Us
 @router.post("/invoices/{invoice_id}/issue")
 def issue_invoice(
     invoice_id: str,
+    request: Request,
     db: Session = Depends(get_db),
     _user: User = Depends(require_admin_or_supervisor),
-    request: Request | None = None,
 ) -> dict[str, str]:
     try:
         iid = uuid.UUID(invoice_id)
@@ -308,9 +308,9 @@ def issue_invoice(
 @router.post("/invoices/{invoice_id}/mark-paid")
 def mark_paid(
     invoice_id: str,
+    request: Request,
     db: Session = Depends(get_db),
     _user: User = Depends(require_admin_or_supervisor),
-    request: Request | None = None,
 ) -> dict[str, str]:
     try:
         iid = uuid.UUID(invoice_id)

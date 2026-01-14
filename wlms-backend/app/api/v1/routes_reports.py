@@ -38,12 +38,12 @@ def _csv_response(rows: list[dict], filename: str) -> Response:
     )
 
 
-@router.get("/inventory-snapshot")
+@router.get("/inventory-snapshot", response_model=None)
 def inventory_snapshot(
     format: str = Query(default="json"),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
-) -> Response | list[dict]:
+) -> object:
     stmt = select(InventoryBalance).where(InventoryBalance.tenant_id == user.tenant_id)
     if is_client_user(user):
         if user.client_id is None:
@@ -66,12 +66,12 @@ def inventory_snapshot(
     return _csv_response(data, "inventory_snapshot.csv") if format == "csv" else data
 
 
-@router.get("/expiry")
+@router.get("/expiry", response_model=None)
 def expiry_report(
     format: str = Query(default="json"),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
-) -> Response | list[dict]:
+) -> object:
     stmt = (
         select(InventoryBalance, ProductBatch)
         .join(ProductBatch, InventoryBalance.batch_id == ProductBatch.id)
@@ -98,13 +98,13 @@ def expiry_report(
     return _csv_response(data, "expiry.csv") if format == "csv" else data
 
 
-@router.get("/movements")
+@router.get("/movements", response_model=None)
 def movement_history(
     format: str = Query(default="json"),
     limit: int = Query(default=200, ge=1, le=5000),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
-) -> Response | list[dict]:
+) -> object:
     stmt = select(InventoryLedger).where(InventoryLedger.tenant_id == user.tenant_id).order_by(InventoryLedger.created_at.desc()).limit(limit)
     if is_client_user(user) and user.client_id is not None:
         stmt = stmt.where(InventoryLedger.client_id == user.client_id)
@@ -128,14 +128,14 @@ def movement_history(
     return _csv_response(data, "movements.csv") if format == "csv" else data
 
 
-@router.get("/volumes")
+@router.get("/volumes", response_model=None)
 def volumes(
     start: date,
     end: date,
     format: str = Query(default="json"),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
-) -> Response | list[dict]:
+) -> object:
     # inbound/outbound counts per day
     inbound_stmt = (
         select(func.date(InboundShipment.created_at), func.count(InboundShipment.id))
@@ -162,12 +162,12 @@ def volumes(
     return _csv_response(data, "volumes.csv") if format == "csv" else data
 
 
-@router.get("/discrepancies")
+@router.get("/discrepancies", response_model=None)
 def discrepancy_report(
     format: str = Query(default="json"),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
-) -> Response | list[dict]:
+) -> object:
     stmt = select(DiscrepancyReport).where(DiscrepancyReport.tenant_id == user.tenant_id).order_by(DiscrepancyReport.created_at.desc())
     if is_client_user(user) and user.client_id is not None:
         stmt = stmt.where(DiscrepancyReport.client_id == user.client_id)
@@ -188,14 +188,14 @@ def discrepancy_report(
     return _csv_response(data, "discrepancies.csv") if format == "csv" else data
 
 
-@router.get("/billing-events")
+@router.get("/billing-events", response_model=None)
 def billing_events_report(
     start: date,
     end: date,
     format: str = Query(default="json"),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
-) -> Response | list[dict]:
+) -> object:
     # BillingEvent has no tenant_id; scope via Client
     stmt = (
         select(BillingEvent)
@@ -224,7 +224,7 @@ def billing_events_report(
     return _csv_response(data, "billing_events.csv") if format == "csv" else data
 
 
-@router.get("/inventory-reconcile")
+@router.get("/inventory-reconcile", response_model=None)
 def inventory_reconcile(
     format: str = Query(default="json"),
     client_id: str | None = Query(default=None),
@@ -233,7 +233,7 @@ def inventory_reconcile(
     location_id: str | None = Query(default=None),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
-) -> Response | list[dict]:
+) -> object:
     """
     Reconcile current InventoryBalance.on_hand_qty against the sum of InventoryLedger.qty_delta.
     This is a diagnostic report to prove ledger-first inventory is reconcilable.

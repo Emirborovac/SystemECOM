@@ -21,9 +21,9 @@ router = APIRouter(prefix="/outbound", tags=["outbound"])
 @router.post("/{outbound_id}/generate-picks")
 def generate_picks(
     outbound_id: str,
+    request: Request,
     db: Session = Depends(get_db),
     user: User = Depends(require_admin_or_supervisor),
-    request: Request | None = None,
 ) -> dict[str, str]:
     try:
         oid = uuid.UUID(outbound_id)

@@ -52,9 +52,9 @@ def list_discrepancies(db: Session = Depends(get_db), user: User = Depends(get_c
 @router.post("", response_model=DiscrepancyOut, status_code=status.HTTP_201_CREATED)
 def create_discrepancy(
     payload: DiscrepancyCreate,
+    request: Request,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
-    request: Request | None = None,
 ) -> DiscrepancyOut:
     if payload.counted_qty < 0:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="counted_qty must be >= 0")
@@ -127,9 +127,9 @@ def create_discrepancy(
 @router.post("/{discrepancy_id}/approve")
 def approve_discrepancy(
     discrepancy_id: str,
+    request: Request,
     db: Session = Depends(get_db),
     user: User = Depends(require_admin_or_supervisor),
-    request: Request | None = None,
 ) -> dict[str, str]:
     try:
         did = uuid.UUID(discrepancy_id)
@@ -202,9 +202,9 @@ def approve_discrepancy(
 @router.post("/{discrepancy_id}/reject")
 def reject_discrepancy(
     discrepancy_id: str,
+    request: Request,
     db: Session = Depends(get_db),
     user: User = Depends(require_admin_or_supervisor),
-    request: Request | None = None,
 ) -> dict[str, str]:
     try:
         did = uuid.UUID(discrepancy_id)

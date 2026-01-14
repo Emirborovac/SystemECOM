@@ -75,9 +75,9 @@ def list_putaway_tasks(db: Session = Depends(get_db), user: User = Depends(requi
 @router.post("/confirm")
 def confirm_putaway(
     payload: PutawayConfirm,
+    request: Request,
     db: Session = Depends(get_db),
     user: User = Depends(require_warehouse_staff),
-    request: Request | None = None,
 ) -> dict[str, str]:
     if payload.qty <= 0:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="qty must be > 0")

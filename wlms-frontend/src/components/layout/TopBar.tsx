@@ -18,9 +18,9 @@ export function TopBar() {
   const restPath = pathname && pathname.length > 3 ? pathname.slice(3) : "";
 
   return (
-    <header className="border-b border-border">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-        <div className="text-xs uppercase tracking-widest text-muted">
+    <header className="fixed top-0 left-0 right-0 z-50 border-b border-border" style={{ backgroundColor: '#ffdc57' }}>
+      <div className="mx-auto flex max-w-[1600px] items-center justify-between px-8 py-4">
+        <div className="text-xs uppercase tracking-widest font-bold" style={{ color: '#093b8b' }}>
           {appT("name")}
         </div>
 
@@ -39,7 +39,8 @@ export function TopBar() {
             {locales.map((l) => (
               <a
                 key={l}
-                className={`btn px-2 py-1 ${l === locale ? "btn-primary" : "btn-ghost"}`}
+                className={`btn px-2 py-1 ${l === locale ? "" : "btn-ghost"}`}
+                style={l === locale ? { backgroundColor: '#952323', color: 'white', borderColor: '#952323' } : {}}
                 href={`/${l}${restPath}`}
                 onClick={(e) => {
                   e.preventDefault();

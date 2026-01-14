@@ -45,9 +45,9 @@ def list_clients(
 @router.post("", response_model=ClientOut, status_code=status.HTTP_201_CREATED)
 def create_client(
     payload: ClientCreate,
+    request: Request,
     db: Session = Depends(get_db),
     user: User = Depends(require_admin_or_supervisor),
-    request: Request | None = None,
 ) -> ClientOut:
     c = Client(
         tenant_id=user.tenant_id,
@@ -102,9 +102,9 @@ def get_client(
 def update_client(
     client_id: str,
     payload: ClientUpdate,
+    request: Request,
     db: Session = Depends(get_db),
     user: User = Depends(require_admin_or_supervisor),
-    request: Request | None = None,
 ) -> ClientOut:
     try:
         cid = uuid.UUID(client_id)

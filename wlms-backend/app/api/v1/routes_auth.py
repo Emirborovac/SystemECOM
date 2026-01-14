@@ -40,8 +40,8 @@ def _user_out(user: User) -> UserOut:
 
 
 @router.post("/login", response_model=TokenResponse)
-def login(payload: LoginRequest, db: Session = Depends(get_db), request: Request | None = None) -> TokenResponse:
-    if request and request.client:
+def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)) -> TokenResponse:
+    if request.client:
         rate_limit(key=f"auth:login:{request.client.host}", limit=20, window_seconds=60)
     ident = payload.username.strip()
     # Accept either username or email as "username"
@@ -65,8 +65,8 @@ def login(payload: LoginRequest, db: Session = Depends(get_db), request: Request
 
 
 @router.post("/refresh", response_model=TokenResponse)
-def refresh(payload: RefreshRequest, db: Session = Depends(get_db), request: Request | None = None) -> TokenResponse:
-    if request and request.client:
+def refresh(payload: RefreshRequest, request: Request, db: Session = Depends(get_db)) -> TokenResponse:
+    if request.client:
         rate_limit(key=f"auth:refresh:{request.client.host}", limit=60, window_seconds=60)
     try:
         decoded = decode_token(payload.refresh_token)
@@ -106,7 +106,7 @@ def refresh(payload: RefreshRequest, db: Session = Depends(get_db), request: Req
 
 
 @router.post("/logout")
-def logout(db: Session = Depends(get_db), user: User = Depends(get_current_user), request: Request | None = None) -> dict[str, str]:
+def logout(request: Request, db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> dict[str, str]:
     # Increment token_version to invalidate existing access+refresh tokens.
     user.token_version = int(user.token_version) + 1
     audit_log(
@@ -117,16 +117,16 @@ def logout(db: Session = Depends(get_db), user: User = Depends(get_current_user)
         entity_type="User",
         entity_id=str(user.id),
         after={"token_version": int(user.token_version)},
-        ip_address=request.client.host if request and request.client else None,
-        user_agent=request.headers.get("user-agent") if request else None,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
     )
     db.commit()
     return {"status": "ok"}
 
 
 @router.post("/forgot-password")
-def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db), request: Request | None = None) -> dict[str, str]:
-    if request and request.client:
+def forgot_password(payload: ForgotPasswordRequest, request: Request, db: Session = Depends(get_db)) -> dict[str, str]:
+    if request.client:
         rate_limit(key=f"auth:forgot:{request.client.host}", limit=10, window_seconds=60)
     # Always return OK to prevent account enumeration
     user = db.scalar(select(User).where(User.email == payload.email))
@@ -152,16 +152,16 @@ def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db
         entity_type="User",
         entity_id=str(user.id),
         after={"email": user.email},
-        ip_address=request.client.host if request and request.client else None,
-        user_agent=request.headers.get("user-agent") if request else None,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
     )
     db.commit()
     return {"status": "ok"}
 
 
 @router.post("/reset-password")
-def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db), request: Request | None = None) -> dict[str, str]:
-    if request and request.client:
+def reset_password(payload: ResetPasswordRequest, request: Request, db: Session = Depends(get_db)) -> dict[str, str]:
+    if request.client:
         rate_limit(key=f"auth:reset:{request.client.host}", limit=10, window_seconds=60)
     from datetime import datetime, timezone
 
@@ -185,8 +185,8 @@ def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db),
         entity_type="User",
         entity_id=str(user.id),
         after={"status": "password_reset"},
-        ip_address=request.client.host if request and request.client else None,
-        user_agent=request.headers.get("user-agent") if request else None,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
     )
     db.commit()
     return {"status": "ok"}
@@ -195,10 +195,10 @@ def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db),
 @router.post("/verify-supervisor")
 def verify_supervisor(
     payload: VerifySupervisorRequest,
+    request: Request,
     db: Session = Depends(get_db),
-    request: Request | None = None,
 ) -> dict[str, str]:
-    if request and request.client:
+    if request.client:
         rate_limit(key=f"auth:verify_supervisor:{request.client.host}", limit=10, window_seconds=60)
 
     user = db.scalar(select(User).where(User.email == payload.email))
@@ -217,8 +217,8 @@ def verify_supervisor(
         entity_type="User",
         entity_id=str(user.id),
         after={"status": "ok"},
-        ip_address=request.client.host if request and request.client else None,
-        user_agent=request.headers.get("user-agent") if request else None,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
     )
     db.commit()
     return {"status": "ok"}
